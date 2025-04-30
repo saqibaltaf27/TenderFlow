@@ -10,30 +10,30 @@ from PyPDF2 import PdfMerger
 import logging
 from pathlib import Path
 
-# Set up logging
+
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# Static files path
+
 BASE_DIR = os.path.dirname(__file__)
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-# Temporary file storage location
-UPLOAD_FOLDER = "/tmp"  # Vercel supports /tmp for temporary storage
+
+UPLOAD_FOLDER = "/tmp"  
 REQUIRED_FILES = ['Bid Security.jpg', 'Cover Letter.pdf', 'DRAP.pdf', 'Technical Quotation.pdf']
 
-# Ensure the temp folder exists
+
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# Helper function to check file type
+
 def allowed_file(filename):
     return filename.split('.')[-1].lower() in {'pdf', 'jpg', 'jpeg', 'png'}
 
-# Convert image to PDF
+
 def convert_image_to_pdf(image_path):
     try:
         image = Image.open(image_path).convert("RGB")
@@ -44,10 +44,10 @@ def convert_image_to_pdf(image_path):
         logger.error(f"Error converting image to PDF: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error converting image to PDF: {str(e)}")
 
-# Root path (GET request)
+
 @app.get("/", response_class=HTMLResponse)
 async def read_form(request: Request):
-    # Directly render HTML content
+
     html_content = f"""
     <!DOCTYPE html>
     <html lang="en">
@@ -79,7 +79,7 @@ async def read_form(request: Request):
     """
     return HTMLResponse(content=html_content)
 
-# File upload and PDF generation (POST request)
+
 @app.post("/", response_class=HTMLResponse)
 async def upload_files(
     request: Request,
@@ -87,7 +87,7 @@ async def upload_files(
     lot_files: List[UploadFile] = Form(...),
 ):
     try:
-        # Validate master file
+       
         if not allowed_file(master_file.filename):
             logger.error(f"Invalid master file: {master_file.filename}")
             return HTMLResponse(content=f"<h1>Invalid master file: {master_file.filename}</h1>")
@@ -97,7 +97,7 @@ async def upload_files(
             shutil.copyfileobj(master_file.file, buffer)
             logger.info(f"Master file saved to {master_path}")
 
-        # Store lot files
+       
         lot_paths = []
         for file in lot_files:
             if allowed_file(file.filename):
@@ -107,13 +107,13 @@ async def upload_files(
                     logger.info(f"Lot file saved to {path}")
                 lot_paths.append(path)
 
-        # Check for missing required files
+   
         missing = [f for f in REQUIRED_FILES if not any(f.lower() in p.lower() for p in lot_paths)]
         if missing:
             logger.error(f"Missing required files: {', '.join(missing)}")
             return HTMLResponse(content=f"<h1>Missing required files: {', '.join(missing)}</h1>")
 
-        # Merge PDFs
+        
         merger = PdfMerger()
         merger.append(master_path)
         for path in lot_paths:
@@ -152,7 +152,7 @@ async def upload_files(
         logger.error(f"Error during file upload or PDF generation: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
-# Serve the generated file
+
 @app.get("/uploads/{filename}", response_class=FileResponse)
 async def get_file(filename: str):
     file_path = os.path.join(UPLOAD_FOLDER, filename)
@@ -160,3 +160,8 @@ async def get_file(filename: str):
         logger.error(f"File not found: {filename}")
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(path=file_path, filename=filename)
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)
