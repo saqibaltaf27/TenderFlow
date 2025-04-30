@@ -1,12 +1,8 @@
 {
-  "functions": {
-    "api/tender.py": {
-      "memory": 512,
-      "maxDuration": 30
-    }
-  },
+  "builds": [
+    { "src": "api/tender.py", "use": "@vercel/python" }
+  ],
   "routes": [
-    { "src": "/", "dest": "api/tender.py" },
-    { "src": "/uploads/(.*)", "dest": "api/tender.py" }
+    { "src": "/(.*)", "dest": "api/tender.py" }
   ]
 }

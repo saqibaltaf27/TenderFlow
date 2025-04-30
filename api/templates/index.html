@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tender Generator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Tender Generator 🧾</h1>
+        <form action="/" method="POST" enctype="multipart/form-data">
+            <div class="upload-section">
+                <label for="master_file">Upload Master File (PDF):</label>
+                <input type="file" name="master_file" accept=".pdf" required>
+            </div>
+
+            <div class="upload-section">
+                <label for="lot_files">Upload Lot Folder Files (Multiple PDFs/Images):</label>
+                <input type="file" name="lot_files" accept=".pdf, .jpg, .jpeg, .png" multiple required>
+            </div>
+
+            <button type="submit" class="btn-submit">Generate Tender</button>
+        </form>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul class="flash-messages">
+                {% for category, message in messages %}
+                    <li class="flash-{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% endwith %}
+
+        {% if filename %}
+        <h2>Tender Generated!</h2>
+        <a href="{{ url_for('uploaded_file', filename=filename) }}" download>
+            <button class="btn-download">Download Tender</button>
+        </a>
+        {% endif %}
+    </div>
+</body>
+</html>

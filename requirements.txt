@@ -1,6 +1,7 @@
 fastapi
-pillow
-PyPDF2
-jinja2
+
 uvicorn
+jinja2
 python-multipart
+Pillow
+PyPDF2
