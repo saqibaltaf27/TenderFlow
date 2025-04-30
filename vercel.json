@@ -1,19 +1,11 @@
 {
-    "version": 2,
-    "builds": [
-      {
-        "src": "app.py",
-        "use": "@vercel/python"
-      }
-    ],
-    "routes": [
-      {
-        "src": "/(.*)",
-        "dest": "/app.py"
-      }
-    ],
-    "env": {
-      "FLASK_ENV": "production"
+  "functions": {
+    "api/tender.py": {
+      "runtime": "python3.11"
     }
-  }
-  
+  },
+  "routes": [
+    { "src": "/", "dest": "api/tender.py" },
+    { "src": "/uploads/(.*)", "dest": "api/tender.py" }
+  ]
+}
