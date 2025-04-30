@@ -1,7 +1,8 @@
 {
   "functions": {
     "api/tender.py": {
-      "runtime": "vercel-python@0.6.0"
+      "memory": 512,
+      "maxDuration": 30
     }
   },
   "routes": [
