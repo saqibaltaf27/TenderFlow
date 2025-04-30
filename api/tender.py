@@ -67,7 +67,7 @@ async def read_form(request: Request):
                 </div>
 
                 <div class="upload-section">
-                    <label for="lot_files">Upload Lot Folder Files (Multiple PDFs/Images):</label>
+                    <label for="lot_files">Upload Base Files (Multiple PDFs/Images):</label>
                     <input type="file" name="lot_files" accept=".pdf, .jpg, .jpeg, .png" multiple required>
                 </div>
 
