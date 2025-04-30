@@ -6,15 +6,15 @@ import tempfile
 import shutil
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = r'E:\Python\.venv\Institution\Tender Files'  # Folder to save uploaded files
+app.config['UPLOAD_FOLDER'] = '/tmp' 
 app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'jpg', 'jpeg', 'png'}
-app.secret_key = 'ce920-212'  # Replace with a secret key
+app.secret_key = 'ce920-212' 
 
 REQUIRED_FILES = ['Bid Security.jpg', 'Cover Letter.pdf', 'DRAP.pdf', 'Technical Quotation.pdf']
 
 # Ensure upload folder exists
-if not os.path.exists(app.config['UPLOAD_FOLDER']):
-    os.makedirs(app.config['UPLOAD_FOLDER'])
+#if not os.path.exists(app.config['UPLOAD_FOLDER']):
+    #os.makedirs(app.config['UPLOAD_FOLDER'])
 
 # Helper function to check allowed file extensions
 def allowed_file(filename):
@@ -75,11 +75,11 @@ def index():
                 else:
                     merger.append(file_path)
 
-            output_path = os.path.join(app.config['UPLOAD_FOLDER'], 'generated_tender.pdf')
+            output_path = os.path.join('/tmp', 'Generated_Tender.pdf')
             merger.write(output_path)
             merger.close()
 
-            return render_template('index.html', filename='generated_tender.pdf')
+            return render_template('index.html', filename='Generated_Tender.pdf')
 
         except Exception as e:
             flash(f'Error generating tender: {e}', 'error')
@@ -89,7 +89,7 @@ def index():
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+   return send_from_directory('/tmp', filename)
 
 if __name__ == '__main__':
     app.run(debug=True)
