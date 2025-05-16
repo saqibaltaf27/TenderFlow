@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+jinja2
+python-multipart
+Pillow
+PyPDF2
+pypandoc
+pandoc
+

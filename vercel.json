@@ -1,0 +1,8 @@
+{
+  "builds": [
+    { "src": "api/tender.py", "use": "@vercel/python" }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "api/tender.py" }
+  ]
+}
