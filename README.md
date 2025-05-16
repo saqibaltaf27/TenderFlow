@@ -15,8 +15,8 @@ TenderFlow is a web application designed to streamline the process of creating t
 
 ## How to Use
 
-1.  **Access the Application:** Go to the public URL provided by Railway after deployment (`(https://tenderflow-production.up.railway.app)`).
-2.  **Log In:** Enter the valid username (``) and password (``) on the login page.
+1.  **Access the Application:** Go to the public URL provided by Railway after deployment (`https://tenderflow-production.up.railway.app`).
+2.  **Log In:** Enter the valid username and password on the login page.
 3.  **Upload Files:**
     * **Master PDF File:** Upload the main PDF document that contains the core tender information.
     * **Lot Files:** Upload one or more files containing specific details for different lots. You can upload PDF files directly, or upload JPG, PNG, or DOCX files, which will be automatically converted to PDF.
