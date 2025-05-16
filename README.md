@@ -15,8 +15,8 @@ TenderFlow is a web application designed to streamline the process of creating t
 
 ## How to Use
 
-1.  **Access the Application: Railway ** Go to the public URL provided by Railway after deployment (https://tenderflow-production.up.railway.app).
-2.  **Access the Application: Vercel **(https://vercel.com/saqib27/tender-generator/6fgpuZXYuaDq3kLmtRQtxnrzBRoH)
+1.  **Access the Application:** Go to the public URL provided by Railway after deployment [Railway](https://tenderflow-production.up.railway.app).
+2.  **Access the Application:** [Vercel](https://vercel.com/saqib27/tender-generator/6fgpuZXYuaDq3kLmtRQtxnrzBRoH)
 3.  **Log In:** Enter the valid username and password on the login page.
 4.  **Upload Files:**
     * **Master PDF File:** Upload the main PDF document that contains the core tender information.
