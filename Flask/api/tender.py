@@ -7,160 +7,233 @@ import os
 import tempfile
 from PIL import Image
 from PyPDF2 import PdfMerger
+import pypandoc
 import logging
 from pathlib import Path
 
-
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-
+# Setup
 app = FastAPI()
-
-
 BASE_DIR = os.path.dirname(__file__)
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+# Logging
+logging.basicConfig(level=logging.INFO)
 
-UPLOAD_FOLDER = "/tmp"  
-REQUIRED_FILES = ['Bid Security.jpg', 'Cover Letter.pdf', 'DRAP.pdf', 'Technical Quotation.pdf']
-
-
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
-
-
-def allowed_file(filename):
-    return filename.split('.')[-1].lower() in {'pdf', 'jpg', 'jpeg', 'png'}
-
+# Helpers
+def is_image(filename): return filename.lower().endswith((".jpg", ".jpeg", ".png"))
+def is_word(filename): return filename.lower().endswith(".docx")
 
 def convert_image_to_pdf(image_path):
+    img = Image.open(image_path).convert("RGB")
+    temp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    img.save(temp_pdf.name)
+    return temp_pdf.name
+
+def convert_word_to_pdf(docx_path):
+    temp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    output_path = temp_pdf.name
     try:
-        image = Image.open(image_path).convert("RGB")
-        temp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-        image.save(temp_pdf.name)
-        return temp_pdf.name
+        pypandoc.convert_file(docx_path, 'pdf', outputfile=output_path)
+        return output_path
     except Exception as e:
-        logger.error(f"Error converting image to PDF: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error converting image to PDF: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Word to PDF conversion failed: {e}")
 
-
+# Routes
 @app.get("/", response_class=HTMLResponse)
-async def read_form(request: Request):
-
-    html_content = f"""
+async def index():
+    return HTMLResponse(content="""
     <!DOCTYPE html>
     <html lang="en">
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Tender Generator</title>
-        <link rel="stylesheet" href="/static/styles.css">
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: #f4f7f9;
+                margin: 0; padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+            }
+            .container {
+                background: white;
+                padding: 2rem 3rem;
+                box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+                border-radius: 10px;
+                max-width: 480px;
+                width: 100%;
+                text-align: center;
+            }
+            h1 {
+                margin-bottom: 1.5rem;
+                color: #333;
+            }
+            label {
+                display: block;
+                margin-top: 1rem;
+                margin-bottom: 0.5rem;
+                font-weight: 600;
+                color: #555;
+                text-align: left;
+            }
+            input[type="file"] {
+                width: 100%;
+                padding: 0.3rem;
+                border-radius: 5px;
+                border: 1px solid #ccc;
+                font-size: 0.9rem;
+            }
+            button {
+                margin-top: 1.8rem;
+                background-color: #007bff;
+                border: none;
+                color: white;
+                padding: 0.75rem 1.5rem;
+                font-size: 1rem;
+                font-weight: 600;
+                border-radius: 6px;
+                cursor: pointer;
+                transition: background-color 0.3s ease;
+            }
+            button:hover {
+                background-color: #0056b3;
+            }
+            .footer {
+                margin-top: 1.5rem;
+                font-size: 0.8rem;
+                color: #999;
+            }
+        </style>
     </head>
     <body>
         <div class="container">
-            <h1>Tender Generator 🧾</h1>
-            <form action="/" method="POST" enctype="multipart/form-data">
-                <div class="upload-section">
-                    <label for="master_file">Upload Master File (PDF):</label>
-                    <input type="file" name="master_file" accept=".pdf" required>
-                </div>
+            <h1>📄 Tender Generator</h1>
+            <form action="/" method="post" enctype="multipart/form-data">
+                <label for="master_file">Master PDF File:</label>
+                <input id="master_file" type="file" name="master_file" accept=".pdf" required />
 
-                <div class="upload-section">
-                    <label for="lot_files">Upload Base Files (Multiple PDFs/Images):</label>
-                    <input type="file" name="lot_files" accept=".pdf, .jpg, .jpeg, .png" multiple required>
-                </div>
+                <label for="lot_files">Lot Files (PDF, Word, Images):</label>
+                <input id="lot_files" type="file" name="lot_files" accept=".pdf,.docx,.jpg,.jpeg,.png" multiple required />
 
-                <button type="submit" class="btn-submit">Generate Tender</button>
+                <button type="submit">Generate Tender</button>
             </form>
+            <div class="footer">Made with ❤️ using FastAPI</div>
         </div>
     </body>
     </html>
-    """
-    return HTMLResponse(content=html_content)
-
+    """)
 
 @app.post("/", response_class=HTMLResponse)
-async def upload_files(
+async def upload(
     request: Request,
     master_file: UploadFile = Form(...),
     lot_files: List[UploadFile] = Form(...),
 ):
     try:
-       
-        if not allowed_file(master_file.filename):
-            logger.error(f"Invalid master file: {master_file.filename}")
-            return HTMLResponse(content=f"<h1>Invalid master file: {master_file.filename}</h1>")
-
-        master_path = os.path.join(UPLOAD_FOLDER, master_file.filename)
-        with open(master_path, "wb") as buffer:
-            shutil.copyfileobj(master_file.file, buffer)
-            logger.info(f"Master file saved to {master_path}")
-
-       
-        lot_paths = []
-        for file in lot_files:
-            if allowed_file(file.filename):
-                path = os.path.join(UPLOAD_FOLDER, file.filename)
-                with open(path, "wb") as f:
-                    shutil.copyfileobj(file.file, f)
-                    logger.info(f"Lot file saved to {path}")
-                lot_paths.append(path)
-
-   
-        missing = [f for f in REQUIRED_FILES if not any(f.lower() in p.lower() for p in lot_paths)]
-        if missing:
-            logger.error(f"Missing required files: {', '.join(missing)}")
-            return HTMLResponse(content=f"<h1>Missing required files: {', '.join(missing)}</h1>")
-
-        
         merger = PdfMerger()
-        merger.append(master_path)
-        for path in lot_paths:
-            if path.endswith((".jpg", ".jpeg", ".png")):
-                pdf_path = convert_image_to_pdf(path)
+
+        # Save and append master file first
+        temp_master = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+        shutil.copyfileobj(master_file.file, temp_master)
+        temp_master.close()
+        merger.append(temp_master.name)
+
+        # Process and append lot files
+        for file in lot_files:
+            if not file.filename:
+                raise HTTPException(status_code=400, detail="One of the uploaded files is missing a filename.")
+            
+            suffix = Path(file.filename).suffix or ".pdf"
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+            shutil.copyfileobj(file.file, temp_file)
+            temp_file.close()
+
+            if is_image(file.filename):
+                pdf_path = convert_image_to_pdf(temp_file.name)
+                merger.append(pdf_path)
+            elif is_word(file.filename):
+                pdf_path = convert_word_to_pdf(temp_file.name)
                 merger.append(pdf_path)
             else:
-                merger.append(path)
+                # Assume PDF
+                merger.append(temp_file.name)
 
-        output_path = os.path.join(UPLOAD_FOLDER, "Generated_Tender.pdf")
-        merger.write(output_path)
+        # Save final merged PDF to uploads folder
+        output_file = os.path.join(UPLOAD_FOLDER, "Generated_Tender.pdf")
+        merger.write(output_file)
         merger.close()
 
-        html_content = f"""
+        # Return download page
+        return HTMLResponse(content=f"""
         <!DOCTYPE html>
         <html lang="en">
         <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Tender Generated</title>
-            <link rel="stylesheet" href="/static/styles.css">
+            <style>
+                body {{
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    background: #f4f7f9;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                    margin: 0;
+                }}
+                .container {{
+                    background: white;
+                    padding: 2rem 3rem;
+                    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+                    border-radius: 10px;
+                    text-align: center;
+                    max-width: 400px;
+                    width: 100%;
+                }}
+                h2 {{
+                    color: #28a745;
+                }}
+                a button {{
+                    background-color: #007bff;
+                    border: none;
+                    color: white;
+                    padding: 0.75rem 1.5rem;
+                    font-size: 1rem;
+                    font-weight: 600;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: background-color 0.3s ease;
+                }}
+                a button:hover {{
+                    background-color: #0056b3;
+                }}
+            </style>
         </head>
         <body>
             <div class="container">
-                <h2>Tender Generated!</h2>
+                <h2>✅ Tender Merged Successfully</h2>
                 <a href="/uploads/Generated_Tender.pdf" download>
-                    <button class="btn-download">Download Tender</button>
+                    <button>Download Tender</button>
                 </a>
             </div>
         </body>
         </html>
-        """
-        return HTMLResponse(content=html_content)
+        """)
 
     except Exception as e:
-        logger.error(f"Error during file upload or PDF generation: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
-
+        logging.exception("Error in processing:")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/uploads/{filename}", response_class=FileResponse)
-async def get_file(filename: str):
+async def serve_file(filename: str):
     file_path = os.path.join(UPLOAD_FOLDER, filename)
     if not os.path.exists(file_path):
-        logger.error(f"File not found: {filename}")
         raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(path=file_path, filename=filename)
-
+    return FileResponse(file_path, filename=filename)
 
 if __name__ == "__main__":
     import uvicorn
